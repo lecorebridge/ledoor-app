@@ -84,6 +84,16 @@
     margin-left:6px; opacity:0.75; vertical-align:middle;
   }
   .read-btn:hover{ opacity:1; }
+  .copy-btn{
+    background:none; border:none; cursor:pointer; font-size:11px;
+    margin-left:4px; opacity:0.75; vertical-align:middle;
+  }
+  .copy-btn:hover{ opacity:1; }
+  .toggle-explain-btn{
+    display:block; background:none; border:none; color:var(--gold-dim);
+    font-size:11px; cursor:pointer; padding:6px 0 2px; position:relative; z-index:1;
+  }
+  .toggle-explain-btn:hover{ color:var(--gold); }
   .paper-card .explain{ font-size:12px; color:var(--text-2); margin-top:4px; position:relative; z-index:1; }
   .paper-card .status{ font-size:10px; color:var(--text-3); margin-top:4px; position:relative; z-index:1; }
 
@@ -226,12 +236,37 @@
       return;
     }
     const readText = (result.translated || '').replace(/'/g, "\\'");
+    const copyText = (result.translated || '').replace(/'/g, "\\'").replace(/\n/g, '\\n');
     card.innerHTML += `
       <div class="translated">${escapeHtml(result.translated || '')}
         <button class="read-btn" onclick="speak('${readText}', '${lang}')" title="朗讀">🔊</button>
+        <button class="copy-btn" onclick="copyThisText('${copyText}', this)" title="複製">📋</button>
       </div>
-      <div class="explain">${escapeHtml(result.explain || '')}</div>
+      <button class="toggle-explain-btn" onclick="toggleExplanationByButton(this)">📖 顯示詳細解釋</button>
+      <div class="collapsible-explanation explain" style="display:none;">${escapeHtml(result.explain || '')}</div>
     `;
+  }
+
+  // 收合/展開語意解釋——從按鈕本身往上找最近的卡片容器，不依賴id比對
+  // （這個做法借鏡聊天橋的邏輯，因為卡片是動態生成的，用id比對容易對不上）
+  function toggleExplanationByButton(btn) {
+    const container = btn.closest('.paper-card');
+    if (!container) return;
+    const explanationDiv = container.querySelector('.collapsible-explanation');
+    if (!explanationDiv) return;
+    const isHidden = explanationDiv.style.display === 'none';
+    explanationDiv.style.display = isHidden ? 'block' : 'none';
+    btn.innerText = isHidden ? '📖 隱藏詳細解釋' : '📖 顯示詳細解釋';
+  }
+
+  function copyThisText(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+      const original = btn.innerText;
+      btn.innerText = '✅';
+      setTimeout(() => { btn.innerText = original; }, 1200);
+    }).catch(() => {
+      alert('複製失敗，請手動選取文字複製');
+    });
   }
 
   // 語言標籤 → 瀏覽器朗讀功能看得懂的語言代碼
